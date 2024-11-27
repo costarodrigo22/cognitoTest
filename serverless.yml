@@ -1,8 +1,12 @@
-service: live020
-frameworkVersion: '3'
+service: loginCognito
 
-plugins:
-  - serverless-esbuild
+build:
+  esbuild:
+    minify: true
+    bundle: true
+    sourcemap: false
+    exclude:
+      - "@aws-sdk/*"
 
 package:
   individually: true
@@ -21,11 +25,47 @@ custom:
   sourcemap: false
   target: node20
   exclude:
-    - '@aws-sdk/*'
+    - "@aws-sdk/*"
   define:
     require.resolve: undefined
   platform: node
   concurrency: 10
+
+resources:
+  Resources:
+    UserPoolTest:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        DeletionProtection: ACTIVE
+        UserPoolName: UserPoolTest
+        MfaConfiguration: OFF
+        AutoVerifiedAttributes:
+          - email
+        AdminCreateUserConfig:
+          AllowAdminCreateUserOnly: false
+        UsernameAttributes:
+          - email
+        AccountRecoverySetting:
+          RecoveryMechanisms:
+            - Name: verified_email
+              Priority: 1
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 10
+            RequireLowercase: false
+            RequireNumbers: false
+            RequireSymbols: false
+            RequireUppercase: false
+            TemporaryPasswordValidityDays: 7
+        Schema:
+          - Name: given_name
+            Mutable: true
+            Required: true
+            AttributeDataType: String
+          - Name: family_name
+            Mutable: true
+            Required: true
+            AttributeDataType: String
 
 functions:
   hello:
