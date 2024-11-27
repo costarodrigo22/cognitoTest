@@ -17,19 +17,38 @@ provider:
   runtime: nodejs20.x
   deploymentMethod: direct
   architecture: arm64
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminGetUser
+          Resource: !GetAtt UserPoolTest.Arn
+
+  environment:
+    COGNITO_CLIENT_ID: !Ref UserPoolTestClient
+    COGNITO_POOL_ID: !Ref UserPoolTest
+  httpApi:
+    authorizers:
+      CognitoAuthorizerTest:
+        type: jwt
+        identitySource: $request.header.Authorization
+        issuerUrl: !GetAtt UserPoolTest.ProviderURL
+        audience:
+          - !Ref UserPoolTestClient
 
 custom:
   esbuild:
-  bundle: true
-  minify: true
-  sourcemap: false
-  target: node20
-  exclude:
-    - "@aws-sdk/*"
-  define:
-    require.resolve: undefined
-  platform: node
-  concurrency: 10
+    bundle: true
+    minify: true
+    sourcemap: false
+    target: node20
+    exclude:
+      - "@aws-sdk/*"
+    define:
+      require.resolve: undefined
+    platform: node
+    concurrency: 10
 
 resources:
   Resources:
@@ -66,11 +85,62 @@ resources:
             Mutable: true
             Required: true
             AttributeDataType: String
+    UserPoolTestClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: UserPoolTestClient
+        UserPoolId: !Ref UserPoolTest
+        ExplicitAuthFlows:
+          - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        TokenValidityUnits:
+          AccessToken: hours
+          RefreshToken: hours
+        AccessTokenValidity: 3
+        RefreshTokenValidity: 1440 #60 dyas
 
 functions:
-  hello:
-    handler: src/functions/hello.handler
+  signUp:
+    handler: src/functions/signUp.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/sign-up
+  accountConfirmation:
+    handler: src/functions/accountConfirmation.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/account-confirmation
+  signIn:
+    handler: src/functions/signIn.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/sign-in
+  refreshToken:
+    handler: src/functions/refreshToken.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/refresh-token
+  forgotPassword:
+    handler: src/functions/forgotPassword.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/forgot-password
+  resetPassword:
+    handler: src/functions/resetPassword.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /auth/reset-password
+  profile:
+    handler: src/functions/profile.handler
     events:
       - httpApi:
           method: GET
-          path: /hello
+          path: /profile
+          authorizer:
+            name: CognitoAuthorizerTest
