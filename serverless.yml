@@ -24,6 +24,26 @@ provider:
           Action:
             - cognito-idp:AdminGetUser
           Resource: !GetAtt UserPoolTest.Arn
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+          Resource: arn:aws:dynamodb:us-east-1:${aws:accountId}:table/Users
+        - Effect: Allow
+          Action:
+            - dynamodb:PutItem
+          Resource: arn:aws:dynamodb:us-east-1:${aws:accountId}:table/Cart_v2
+        - Effect: Allow
+          Action:
+            - dynamodb:UpdateItem
+          Resource: arn:aws:dynamodb:us-east-1:${aws:accountId}:table/Cart_v2
+        - Effect: Allow
+          Action:
+            - dynamodb:DeleteItem
+          Resource: arn:aws:dynamodb:us-east-1:${aws:accountId}:table/Cart_v2
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+          Resource: arn:aws:dynamodb:us-east-1:${aws:accountId}:table/Cart_v2/index/UserIdIndex
 
   environment:
     COGNITO_CLIENT_ID: !Ref UserPoolTestClient
@@ -97,7 +117,48 @@ resources:
           AccessToken: hours
           RefreshToken: hours
         AccessTokenValidity: 3
-        RefreshTokenValidity: 1440 #60 dyas
+        RefreshTokenValidity: 1440 #60 days
+
+    CartTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Cart_v2
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: CartId
+            AttributeType: S
+          - AttributeName: UserId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: CartId
+            KeyType: HASH
+          - AttributeName: UserId
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: UserIdIndex
+            KeySchema:
+              - AttributeName: UserId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: Users
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: UserId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: UserId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: UserIdIndex
+            KeySchema:
+              - AttributeName: UserId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
 
 functions:
   signUp:
@@ -142,5 +203,37 @@ functions:
       - httpApi:
           method: GET
           path: /profile
+          authorizer:
+            name: CognitoAuthorizerTest
+  getCart:
+    handler: src/functions/getCart.handler
+    events:
+      - httpApi:
+          method: GET
+          path: /cart
+          authorizer:
+            name: CognitoAuthorizerTest
+  addToCart:
+    handler: src/functions/addToCart.handler
+    events:
+      - httpApi:
+          method: POST
+          path: /cart
+          authorizer:
+            name: CognitoAuthorizerTest
+  updateCartItem:
+    handler: src/functions/updateCartItem.handler
+    events:
+      - httpApi:
+          method: PUT
+          path: /cart/{cartId}
+          authorizer:
+            name: CognitoAuthorizerTest
+  deleteCartItem:
+    handler: src/functions/deleteCartItem.handler
+    events:
+      - httpApi:
+          method: DELETE
+          path: /cart/{cartId}
           authorizer:
             name: CognitoAuthorizerTest
