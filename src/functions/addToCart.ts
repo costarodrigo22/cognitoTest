@@ -12,9 +12,11 @@ export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
       return response(400, { error: "User not found" });
     }
 
-    const { productId, quantity, price } = JSON.parse(event.body || "{}");
+    const { productId, quantity, price, productName } = JSON.parse(
+      event.body || "{}"
+    );
 
-    if (!productId || !quantity || !price) {
+    if (!productId || !quantity || !price || !productName) {
       return response(400, { error: "Missing product details" });
     }
 
@@ -23,12 +25,13 @@ export async function handler(event: APIGatewayProxyEventV2WithJWTAuthorizer) {
     const params = {
       TableName: "Cart_v2",
       Item: {
-        CartId: { S: cartId }, // Identificador único para o item do carrinho
-        UserId: { S: userId }, // Associando o carrinho ao UserId
-        ProductId: { S: productId }, // ID do produto
-        Quantity: { N: quantity.toString() }, // Quantidade do produto
-        Price: { N: price.toString() }, // Preço do produto
-        CreatedAt: { S: new Date().toISOString() }, // Data de criação
+        CartId: { S: cartId },
+        UserId: { S: userId },
+        ProductId: { S: productId },
+        Quantity: { N: quantity.toString() },
+        Price: { N: price.toString() },
+        ProductName: { S: productName },
+        CreatedAt: { S: new Date().toISOString() },
       },
     };
 
