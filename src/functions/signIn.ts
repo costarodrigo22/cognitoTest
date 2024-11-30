@@ -29,10 +29,22 @@ export async function handler(event: APIGatewayProxyEventV2) {
       return response(401, { error: "Invalid credentials." });
     }
 
-    return response(200, {
-      AccessToken: AuthenticationResult.AccessToken,
-      refreshToken: AuthenticationResult.RefreshToken,
-    });
+    return response(
+      200,
+      {
+        AccessToken: AuthenticationResult.AccessToken,
+        IdToken: AuthenticationResult.IdToken,
+        RefreshToken: AuthenticationResult.RefreshToken,
+      },
+      {
+        "Set-Cookie": [
+          `AccessToken=${AuthenticationResult.AccessToken}; HttpOnly; Secure; Path=/; Max-Age=3600`,
+          `IdToken=${AuthenticationResult.IdToken}; HttpOnly; Secure; Path=/; Max-Age=3600`,
+          `RefreshToken=${AuthenticationResult.RefreshToken}; HttpOnly; Secure; Path=/; Max-Age=604800`,
+        ].join(", "),
+        "Content-Type": "application/json",
+      }
+    );
   } catch (error) {
     if (error instanceof UserNotFoundException) {
       return response(401, {

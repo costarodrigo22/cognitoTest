@@ -46,7 +46,7 @@ provider:
           Resource: arn:aws:dynamodb:us-east-1:${aws:accountId}:table/Cart_v2/index/UserIdIndex
 
   environment:
-    COGNITO_CLIENT_ID: !Ref UserPoolTestClient
+    COGNITO_CLIENT_ID: !Ref testClientIaca
     COGNITO_POOL_ID: !Ref UserPoolTest
   httpApi:
     authorizers:
@@ -55,7 +55,7 @@ provider:
         identitySource: $request.header.Authorization
         issuerUrl: !GetAtt UserPoolTest.ProviderURL
         audience:
-          - !Ref UserPoolTestClient
+          - !Ref testClientIaca
 
 custom:
   esbuild:
@@ -105,10 +105,10 @@ resources:
             Mutable: true
             Required: true
             AttributeDataType: String
-    UserPoolTestClient:
+    testClientIaca:
       Type: AWS::Cognito::UserPoolClient
       Properties:
-        ClientName: UserPoolTestClient
+        ClientName: testClientIaca
         UserPoolId: !Ref UserPoolTest
         ExplicitAuthFlows:
           - ALLOW_USER_PASSWORD_AUTH
